@@ -22,25 +22,24 @@ async function run() {
         const inventoryCollection = client.db('taskitem').collection('task');
         console.log('db connected');
 
+        // AUTH
+        app.post('/login', async (req, res) => {
+            const user = req.body;
+            const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
+                expiresIn: '1d'
+            });
+            res.send({ accessToken });
+        })
 
 
-        // get users 
-        app.get('/user', async (req, res) => {
-            const query = {};
-            const cursor = inventoryCollection.find(query);
-            const users = await cursor.toArray();
-            res.send(users)
-        });
 
-        //SERVICES API
-        app.get('/addTask', async (req, res) => {
+
+        //todo API
+        app.get('/add', async (req, res) => {
             const cursor = inventoryCollection.find()
             const services = await cursor.toArray();
             res.send(services)
         });
-
-
-
 
 
         //ITEM DELETE API
@@ -50,8 +49,29 @@ async function run() {
             const result = await inventoryCollection.deleteOne(query);
             res.send(result);
         });
+        //ADD ITEM API
+        app.post('/add', async (req, res) => {
+            const newItem = req.body;
+            const result = await inventoryCollection.insertOne(newItem);
+            res.send(result);
+        });
+
+        // JWT API
 
 
+        app.get('/add', verifyJWT, async (req, res) => {
+            const decodedEmail = req.decoded.email;
+            const email = req.query.email;
+            if (email === decodedEmail) {
+                const query = { email: email };
+                const cursor = inventoryCollection.find(query);
+                const addItems = await cursor.toArray();
+                res.send(addItems)
+            }
+            else {
+                res.status(403).send({ message: 'forbidden access' })
+            }
+        })
 
     }
     finally {
